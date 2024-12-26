@@ -12,8 +12,6 @@ import de.guntram.mcmod.durabilityviewer.itemindicator.ItemIndicator;
 import de.guntram.mcmod.durabilityviewer.itemindicator.TREnergyIndicator;
 import de.guntram.mcmod.durabilityviewer.sound.ColytraBreakingWarner;
 import de.guntram.mcmod.durabilityviewer.sound.ItemBreakingWarner;
-import dev.emi.trinkets.api.TrinketComponent;
-import dev.emi.trinkets.api.TrinketsApi;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -84,12 +82,8 @@ public class GuiItemDurability {
 
         try {
             Class.forName("dev.emi.trinkets.api.TrinketsApi");
-            LOGGER.info("Using trinkets in DurabilityViewer");
-            haveTrinketsApi = true;
-            trinketWarners = new ItemBreakingWarner[getTrinketSlotCount(minecraft.player)];
-            for (int i = 0; i < trinketWarners.length; i++) {
-                trinketWarners[i] = new ItemBreakingWarner();
-            }
+            LOGGER.warn("DurabilityViewer was compiled without trinkets support");
+            trinketWarners = new ItemBreakingWarner[0];
         } catch (ClassNotFoundException ex) {
             LOGGER.info("DurabilityViewer did not find Trinkets API");
             trinketWarners = new ItemBreakingWarner[0];
@@ -241,28 +235,7 @@ public class GuiItemDurability {
 
         ItemIndicator[] trinkets;
         if (haveTrinketsApi) {
-            List<ItemStack> equipped = getTrinkets(player);
-            if (equipped == null) {
-                equipped = Collections.emptyList();
-            }
-
-            trinkets = new ItemIndicator[equipped.size()];
-            if (trinkets.length > trinketWarners.length) {
-                // Apparently this can happen when joining a server that defines 
-                // more trinkets than the client?
-                trinketWarners = new ItemBreakingWarner[trinkets.length];
-                for (int i = 0; i < trinketWarners.length; i++) {
-                    trinketWarners[i] = new ItemBreakingWarner();
-                }
-            }
-            LOGGER.debug("know about " + trinkets.length + " trinkets, invSize is " + equipped.size() + ", have " + trinketWarners.length + " warners");
-            for (int i = 0; i < trinkets.length; i++) {
-                trinkets[i] = new ItemDamageIndicator(equipped.get(i), Configs.Settings.ShowAllTrinkets.getBooleanValue());
-                if (needToWarn == null && trinketWarners[i].checkBreaks(equipped.get(i))) {
-                    needToWarn = equipped.get(i);
-                }
-                LOGGER.debug("trinket position " + i + " has item " + equipped.get(i).getItem().toString());
-            }
+            trinkets = new ItemIndicator[0];
         } else {
             trinkets = new ItemIndicator[0];
         }
@@ -458,12 +431,10 @@ public class GuiItemDurability {
     }
 
     public int getTrinketSlotCount(LivingEntity player) {
-        Optional<TrinketComponent> component = TrinketsApi.getTrinketComponent(player);
         return 0;//component.map(trinketComponent -> trinketComponent.getEquipped(prdct -> true).size()).orElse(0);
     }
 
     public List<ItemStack> getTrinkets(LivingEntity player) {
-        Optional<TrinketComponent> component = TrinketsApi.getTrinketComponent(player);
         return null;//component.map(trinketComponent -> trinketComponent.getEquipped(prdct -> true).stream().map(Pair::getRight).toList()).orElse(null);
     }
 }
