@@ -17,6 +17,7 @@
     "durabilityviewer.config.percentvalues": "Percentages",
     "durabilityviewer.config.warnmode": "Warning mode",
     "durabilityviewer.config.tt.corner": "Corner 0 to 3 - bottom right, bottom left, top right, top left",
+    "durabilityviewer.config.tt.hudscalepercent": "Multiply durability display element size by this %%",
     "durabilityviewer.config.tt.armorhotbar": "Render armor around hotbar (instead of with tools)",
     "durabilityviewer.config.tt.tooltipcolor": "Minecraft Color 0 .. 15",
     "durabilityviewer.config.tt.effectduration": "Show effect durations",

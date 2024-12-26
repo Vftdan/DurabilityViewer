@@ -20,6 +20,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.util.Window;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.util.math.Rect2i;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffect;
@@ -146,7 +147,64 @@ public class GuiItemDurability {
         left, over, right;
     }
 
+    public static float getConfigScaleFactor() {
+        float scale = Configs.Settings.HUDScalePercent.getIntegerValue() / 100.0f;
+        if (scale <= 0.0f) {
+            scale = 1.0f;
+        }
+        return scale;
+    }
+
     public void onRenderGameOverlayPost(DrawContext context, float partialTicks) {
+        float scale = getConfigScaleFactor();
+
+        MatrixStack stack = context.getMatrices();
+        stack.push();
+        stack.scale(scale, scale, scale);
+
+        try {
+            onRenderGameOverlayPostPrescaled(context, partialTicks);
+        } finally {
+            stack.pop();
+        }
+    }
+
+    private static RenderSize getScaledWindowSize() {
+        float scale = getConfigScaleFactor();
+
+        Window mainWindow = MinecraftClient.getInstance().getWindow();
+        return new RenderSize((int) (mainWindow.getScaledWidth() / scale), (int) (mainWindow.getScaledHeight() / scale));
+    }
+
+    private static Rect2i getScaledHotbarPlusIconRect() {
+        float scale = getConfigScaleFactor();
+        RenderSize windowSize = getScaledWindowSize();
+        MinecraftClient minecraft = MinecraftClient.getInstance();
+
+        float leftOffset = -120 + iconWidth;
+        float rightOffset = 100;
+        if (!minecraft.player.getEquippedStack(EquipmentSlot.OFFHAND).isEmpty()) {
+            if (minecraft.options.getMainArm().getValue() == Arm.RIGHT) {
+                leftOffset -= 20;
+            } else {
+                rightOffset += 20;
+            }
+        }
+
+        leftOffset /= scale;
+        rightOffset /= scale;
+        leftOffset -= iconWidth;
+        float height = 20 / scale;
+
+        return new Rect2i((int) (windowSize.width / 2 + leftOffset), (int) (windowSize.height - height), (int) (rightOffset - leftOffset), (int) height);
+    }
+
+    private static int getScaledEffectsHeight() {
+        float scale = getConfigScaleFactor();
+        return (int) (55 / scale);
+    }
+
+    protected void onRenderGameOverlayPostPrescaled(DrawContext context, float partialTicks) {
 
         PlayerEntity player = minecraft.player;
         ItemStack needToWarn = null;
@@ -235,7 +293,7 @@ public class GuiItemDurability {
             arrows = new ItemCountIndicator(getFirstArrowStack(), getInventoryArrowCount());
         }
 
-        Window mainWindow = MinecraftClient.getInstance().getWindow();
+        RenderSize windowSize = getScaledWindowSize();
         RenderSize armorSize, toolsSize, trinketsSize;
         if (Configs.Settings.ArmorAroundHotbar.getBooleanValue()) {
             armorSize = new RenderSize(0, 0);
@@ -263,22 +321,22 @@ public class GuiItemDurability {
                 ypos = 5;
             }
             case TOP_RIGHT -> {
-                xposArmor = mainWindow.getScaledWidth() - 5 - armorSize.width;
+                xposArmor = windowSize.width - 5 - armorSize.width;
                 xposTools = xposArmor - toolsSize.width;
                 xposTrinkets = xposTools - trinketsSize.width;
-                ypos = 60;   // below buff/debuff effects
+                ypos = 5 + getScaledEffectsHeight();   // below buff/debuff effects
             }
             case BOTTOM_LEFT -> {
                 xposArmor = 5;
                 xposTools = 5 + armorSize.width;
                 xposTrinkets = 5 + armorSize.width + trinketsSize.width;
-                ypos = mainWindow.getScaledHeight() - 5 - totalHeight;
+                ypos = windowSize.height - 5 - totalHeight;
             }
             case BOTTOM_RIGHT -> {
-                xposArmor = mainWindow.getScaledWidth() - 5 - armorSize.width;
-                xposTools = mainWindow.getScaledWidth() - 5 - armorSize.width - toolsSize.width;
+                xposArmor = windowSize.width - 5 - armorSize.width;
+                xposTools = windowSize.width - 5 - armorSize.width - toolsSize.width;
                 xposTrinkets = xposTools - trinketsSize.width;
-                ypos = mainWindow.getScaledHeight() - 5 - totalHeight;
+                ypos = windowSize.height - 5 - totalHeight;
             }
             default -> {
                 return;
@@ -288,25 +346,17 @@ public class GuiItemDurability {
         RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
 
         if (Configs.Settings.ArmorAroundHotbar.getBooleanValue()) {
-            int leftOffset = -120;
-            int rightOffset = 100;
-            if (!player.getEquippedStack(EquipmentSlot.OFFHAND).isEmpty()) {
-                if (minecraft.options.getMainArm().getValue() == Arm.RIGHT) {
-                    leftOffset -= 20;
-                } else {
-                    rightOffset += 20;
-                }
-            }
+            Rect2i hotbarRect = getScaledHotbarPlusIconRect();
             int helmetTextWidth = fontRenderer.getWidth(helmet.getDisplayValue());
             int chestTextWidth = fontRenderer.getWidth(chestplate.getDisplayValue());
-            this.renderItems(context, mainWindow.getScaledWidth() / 2 + leftOffset - helmetTextWidth, mainWindow.getScaledHeight() - iconHeight * 2 - 2, true, RenderPos.left, helmetTextWidth + iconWidth + spacing, helmet);
-            this.renderItems(context, mainWindow.getScaledWidth() / 2 + leftOffset - chestTextWidth, mainWindow.getScaledHeight() - iconHeight - 2, true, RenderPos.left, chestTextWidth + iconWidth + spacing, chestplate);
+            this.renderItems(context, hotbarRect.getX() - helmetTextWidth, windowSize.height - iconHeight * 2 - 2, true, RenderPos.left, helmetTextWidth + iconWidth + spacing, helmet);
+            this.renderItems(context, hotbarRect.getX() - chestTextWidth, windowSize.height - iconHeight - 2, true, RenderPos.left, chestTextWidth + iconWidth + spacing, chestplate);
             if (colytra != null) {
                 int colytraTextWidth = fontRenderer.getWidth(colytra.getDisplayValue());
-                this.renderItems(context, mainWindow.getScaledWidth() / 2 + leftOffset - chestTextWidth - colytraTextWidth - iconWidth, mainWindow.getScaledHeight() - iconHeight - 2, true, RenderPos.left, colytraTextWidth + iconWidth + spacing, colytra);
+                this.renderItems(context, hotbarRect.getX() - chestTextWidth - colytraTextWidth - iconWidth, windowSize.height - iconHeight - 2, true, RenderPos.left, colytraTextWidth + iconWidth + spacing, colytra);
             }
-            this.renderItems(context, mainWindow.getScaledWidth() / 2 + rightOffset, mainWindow.getScaledHeight() - iconHeight * 2 - 2, true, RenderPos.right, armorSize.width, leggings);
-            this.renderItems(context, mainWindow.getScaledWidth() / 2 + rightOffset, mainWindow.getScaledHeight() - iconHeight - 2, true, RenderPos.right, armorSize.width, boots);
+            this.renderItems(context, hotbarRect.getX() + hotbarRect.getWidth(), windowSize.height - iconHeight * 2 - 2, true, RenderPos.right, armorSize.width, leggings);
+            this.renderItems(context, hotbarRect.getX() + hotbarRect.getWidth(), windowSize.height - iconHeight - 2, true, RenderPos.right, armorSize.width, boots);
             if (corner.isRight()) {
                 xposTools += armorSize.width;
             } else {
@@ -332,13 +382,13 @@ public class GuiItemDurability {
     }
 
     private void renderItemBreakingOverlay(DrawContext context, ItemStack itemStack, long timeDelta) {
-        Window mainWindow = MinecraftClient.getInstance().getWindow();
+        RenderSize windowSize = getScaledWindowSize();
         float alpha = 1.0f - ((float) timeDelta / 1000.0f);
-        float xWarn = mainWindow.getScaledWidth() / 2f;
-        float yWarn = mainWindow.getScaledHeight() / 2f;
+        float xWarn = windowSize.width / 2f;
+        float yWarn = windowSize.height / 2f;
         float scale = 5.0f;
 
-        context.fill(0, 0, mainWindow.getScaledWidth(), mainWindow.getScaledHeight(), 0xff0000 + ((int) (alpha * 128) << 24));
+        context.fill(0, 0, windowSize.width, windowSize.height, 0xff0000 + ((int) (alpha * 128) << 24));
 
         Matrix4fStack stack = RenderSystem.getModelViewStack();
         stack.pushMatrix();

@@ -27,6 +27,7 @@ public class Configs implements IConfigHandler {
     public static class Settings {
         public static final ConfigBoolean ArmorAroundHotbar = new ConfigBoolean("ArmorAroundHotbar", false, Text.translatable("durabilityviewer.config.tt.armorhotbar").getString());
         public static final ConfigOptionList HUDCorner = new ConfigOptionList("HUDCorner", Corner.BOTTOM_RIGHT, Text.translatable("durabilityviewer.config.tt.corner").getString());
+        public static final ConfigInteger HUDScalePercent = new ConfigInteger("HUDScalePercent", 100, 1, 400, true, Text.translatable("durabilityviewer.config.tt.hudscalepercent").getString());
         public static final ConfigBoolean EffectDuration = new ConfigBoolean("EffectDuration", true, Text.translatable("durabilityviewer.config.tt.effectduration").getString());
         public static final ConfigInteger HideDamageOverPercent = new ConfigInteger("HideDamageOverPercent", 100, 0, 100, true, Text.translatable("durabilityviewer.config.tt.hidedamagepercent").getString());
         public static final ConfigInteger SoundBelowDurability = new ConfigInteger("SoundBelowDurability", 100, 1, 1500, true, Text.translatable("durabilityviewer.config.tt.mindurability").getString());
@@ -42,6 +43,7 @@ public class Configs implements IConfigHandler {
         public static final ImmutableList<IConfigBase> SETTINGS = ImmutableList.of(
                 ArmorAroundHotbar,
                 HUDCorner,
+                HUDScalePercent,
                 EffectDuration,
                 HideDamageOverPercent,
                 SoundBelowDurability,
